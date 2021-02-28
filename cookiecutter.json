@@ -3,8 +3,6 @@
   "wifissid": "",
   "wifisecret": ""
   "token": "",
-  "master
-  "swarmmaster": {
-      "default": false
-      "boolean"
+  "master": "",
+  "gh_token": ""
 }

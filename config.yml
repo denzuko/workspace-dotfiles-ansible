@@ -12,10 +12,15 @@
 ---
 - hosts: localhost
   become: true
+  vars:
+    homedir: "{{ lookup('env', 'HOME') }}"
+    pubkey: "{{lookup('env', 'HOME')}}/.ssh/id_rsa.pub"
+    gh_token: "{{lookup('env', 'GH_TOKEN')}}"
   tasks:
     - name: Install needed tools
       apt:
         name: "{{item}}"
+        update_cache: yes
         state: latest
       loop:
         - monit
@@ -23,11 +28,11 @@
         - vim-nox
         - mutt
         - fetchmail
-        - gpg2
+        - gpgv2
         - git
         - python3-pip
         - python3-venv
-        - python3-jsonschemaa
+        - python3-jsonschema
         - python3-setuptools
         - httpie
         - msmtp
@@ -47,10 +52,12 @@
         state: absent
 
     - name: Configure vimrc
-      lineinfile:
-        path: "{{lookup(env, 'HOME') }}/.vimrc"
+      blockinfile:
+        path: "{{homedir}}/.vimrc"
         state: present
-        line: |
+        create: yes
+        marker: '" {mark} ANSIBLE MANAGED BLOCK'
+        content: |
           filetype plugin on
           set nocompatible
           set ts=4 sts=4 sw=4 ai si et tw=80 ff=unix vb
@@ -74,44 +81,50 @@
           augroup end
 
     - name: Configure inputrc
-      lineinfile:
-          path: "{{lookup(env, 'HOME') }}/.inputrc"
+      blockinfile:
+          path: "{{homedir}}/.inputrc"
           state: present
-          line: |
+          create: yes
+          content: |
               set editing-mode vi
+              set bell-style none
 
-    - name: Add powerline bash lib
-      lineinfile:
-          path: "{{lookup(env, 'HOME') }}/.local/lib/powerline.sh"
+    - name: Add content for powerline bash lib
+      blockinfile:
+          path: "{{homedir}}/.local/lib/powerline.sh"
           state: present
-          line: |
+          create: yes
+          content: |
               powerline-daemon -q
               POWERLINE_BASH_CONTINUATION=1
               POWERLINE_BASH_SELECT=1
               source /usr/share/powerline/bindings/bash/powerline.sh
 
     - name: append bashrc with powerline lib
-      lineinfile:
-          path: "{{lookup(env, 'HOME') }}/.bashrc"
+      blockinfile:
+          path: "{{homedir}}/.bashrc"
           state: present
-          line: 'source /$HOME/.local/lib/powerline.shpowerline.sh'
+          create: true
+          content: 'source /$HOME/.local/lib/powerline.sh'
 
     - name: Add vim theme to config directory
       git:
           repo: https://github.com/mr-ubik/vim-hackerman-syntax.git
-          dest: "{{lookup(env, 'HOME') }}/.vim/"
+          force: true
+          dest: "{{homedir}}/.vim/"
           depth: 1
 
     - name: remove theme's git folder [fixme]
       file:
-          path: "{{lookup(env, 'HOME') }}/.vim/.git"
+          path: "{{lookup('env', 'HOME') }}/.vim/.git"
+          force: true
           state: absent
 
     - name: establish cron re-provisioning
       cron:
         name: 'rerun config playbook'
         special_time: hourly
-        job: "cd {{lookup(env, 'HOME')}}; invoke run_playbook"
+        job: "cd {{homedir}}; invoke run_playbook"
 
     - name: fetchmail periodically
       cron:
@@ -120,44 +133,76 @@
         job: "fetchmail"
 
     - name: Establish git config, User 
-      community.general.git_config:
+      git_config:
         name: user.name
         scope: global
         value: 'Dwight Spencer'
 
     - name: Establish git config, Email
-      community.general.git_config:
+      git_config:
         name: user.email
         scope: global
         value: 'dwightaspencer@gmail.com'
 
     - name: Establish git config, hub protocol
-      community.general.git_config:
+      git_config:
         name: hub.protocol
         scope: global
         value: 'https'
 
     - name: Establish git config - github user
-      community.general.git_config:
+      git_config:
         name: github.user
         scope: global
         value: 'denzuko'
 
-    - name: Generate an OpenSSH keypair with the default values (4096 bits, rsa)
-      community.crypto.openssh_keypair:
-          path: "{{lookup(env, 'HOME')}}/.ssh/id_ssh_rsa"
+    - name: Generate an OpenSSH keypair
+      openssh_keypair:
+          path: "{{homedir}}/.ssh/id_rsa"
+          force: yes
 
-    - name: Ensure public key exists for upload to github
-      file:
-        state: present
-        path: "{{lookup('file', '$HOME/.ssh/id_rsa.pub') }}"
+    - name: Update github public keys
+      github_key:
+        name: "Access key - {{ansible_hostname}}"
+        token: "{{gh_token}}"
+        pubkey: "{{lookup('file', pubkey)}}"
 
     - name: Add monitrc
-      lineinfile:
-        path: "{{lookup(env, 'HOME') }}/.bashrc"
+      blockinfile:
+        path: "{{lookup('env', 'HOME') }}/.bashrc"
         state: present
-        line: |
+        create: yes
+        content: |
           set daemon 120
           set logfile "{{lookup('env', 'HOME')}}/.monit.log"
           set httpd port 2812 and use address localhost allow localhost allow @adm
           check system localhost if loadavg (1min) > 10 then alert
+    - name: theme tmux
+      git:
+        repo: https://github.com/jimeh/tmux-themepack.git
+        dest: "{{homedir}}/.tmux-themepack"
+
+    - name: theme tmux
+      git:
+        repo: https://github.com/jimeh/tmux-themepack.git
+        dest: "{{homedir}}/.tmux-themepack"
+
+    - name: config tmux theme
+      blockinfile:
+        path: "{{homedir}}/.tmux.conf"
+        state: present
+        create: yes
+        content: |
+           source-file "${HOME}/.tmux-themepack/powerline/block/magenta.tmuxtheme"
+           unbind C-b
+           set-option -g prefix C-a
+           bind-key C-a send-prefix
+           bind | split-window -h
+           bind - split-window -v
+           unbind '"'
+           unbind %
+           set -g mouse-select-window on
+           set -g mouse-select-pane on
+           set -g mouse-resize-pane on
+           set -g mouse on
+
