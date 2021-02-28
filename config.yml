@@ -1,0 +1,163 @@
+# ~/.local/etc/config.yml
+## Ansible Playbook - config.yml
+## Defines user level configuration and environment
+##
+## Copyright (C)2021, Da Planet Security. All Rights Reserved
+## Licenced under a modified BSD 2.0 Licence.
+## Authors:
+##   - Dwight Spencer <@denzuko>
+# gather_facts: false
+# roles:
+#    - { role: systemli.drift }
+---
+- hosts: localhost
+  become: true
+  tasks:
+    - name: Install needed tools
+      apt:
+        name: "{{item}}"
+        state: latest
+      loop:
+        - monit
+        - incron
+        - vim-nox
+        - mutt
+        - fetchmail
+        - gpg2
+        - git
+        - python3-pip
+        - python3-venv
+        - python3-jsonschemaa
+        - python3-setuptools
+        - httpie
+        - msmtp
+        - docker
+        - irssi
+        - surfraw
+        - elinks
+        - jo
+        - jq
+        - awscli
+        - s3cmd
+        - ctags
+
+    - name: remove broken vim
+      apt:
+        name: vim-tiny
+        state: absent
+
+    - name: Configure vimrc
+      lineinfile:
+        path: "{{lookup(env, 'HOME') }}/.vimrc"
+        state: present
+        line: |
+          filetype plugin on
+          set nocompatible
+          set ts=4 sts=4 sw=4 ai si et tw=80 ff=unix vb
+          set ru sb spr ls=2
+          set fdm=indent
+          set foldlevel=99
+          set encoding=utf-8
+          set omnifunc=syntaxcomplete#Complete
+          syntax on
+          set list
+          nnoremap <space> za
+          augroup Python
+            au!
+            au BufCreate,BufNewFile,BufRead *.py set tw=79 list rn
+            au BufCreate,BufNewFile,BufRead *.py set makeprg=invoke
+          augroup end
+          augroup yaml
+            au!
+            au BufNewFile,BufRead *.yaml,*.yml set makeprg=pipx\ run\ yamllint\ %
+            au BufNewFile,BufRead *.yaml,*.yml set list ruler rnu
+          augroup end
+
+    - name: Configure inputrc
+      lineinfile:
+          path: "{{lookup(env, 'HOME') }}/.inputrc"
+          state: present
+          line: |
+              set editing-mode vi
+
+    - name: Add powerline bash lib
+      lineinfile:
+          path: "{{lookup(env, 'HOME') }}/.local/lib/powerline.sh"
+          state: present
+          line: |
+              powerline-daemon -q
+              POWERLINE_BASH_CONTINUATION=1
+              POWERLINE_BASH_SELECT=1
+              source /usr/share/powerline/bindings/bash/powerline.sh
+
+    - name: append bashrc with powerline lib
+      lineinfile:
+          path: "{{lookup(env, 'HOME') }}/.bashrc"
+          state: present
+          line: 'source /$HOME/.local/lib/powerline.shpowerline.sh'
+
+    - name: Add vim theme to config directory
+      git:
+          repo: https://github.com/mr-ubik/vim-hackerman-syntax.git
+          dest: "{{lookup(env, 'HOME') }}/.vim/"
+          depth: 1
+
+    - name: remove theme's git folder [fixme]
+      file:
+          path: "{{lookup(env, 'HOME') }}/.vim/.git"
+          state: absent
+
+    - name: establish cron re-provisioning
+      cron:
+        name: 'rerun config playbook'
+        special_time: hourly
+        job: "cd {{lookup(env, 'HOME')}}; invoke run_playbook"
+
+    - name: fetchmail periodically
+      cron:
+        name: 'fetchmail on the hour'
+        special_time: hourly
+        job: "fetchmail"
+
+    - name: Establish git config, User 
+      community.general.git_config:
+        name: user.name
+        scope: global
+        value: 'Dwight Spencer'
+
+    - name: Establish git config, Email
+      community.general.git_config:
+        name: user.email
+        scope: global
+        value: 'dwightaspencer@gmail.com'
+
+    - name: Establish git config, hub protocol
+      community.general.git_config:
+        name: hub.protocol
+        scope: global
+        value: 'https'
+
+    - name: Establish git config - github user
+      community.general.git_config:
+        name: github.user
+        scope: global
+        value: 'denzuko'
+
+    - name: Generate an OpenSSH keypair with the default values (4096 bits, rsa)
+      community.crypto.openssh_keypair:
+          path: "{{lookup(env, 'HOME')}}/.ssh/id_ssh_rsa"
+
+    - name: Ensure public key exists for upload to github
+      file:
+        state: present
+        path: "{{lookup('file', '$HOME/.ssh/id_rsa.pub') }}"
+
+    - name: Add monitrc
+      lineinfile:
+        path: "{{lookup(env, 'HOME') }}/.bashrc"
+        state: present
+        line: |
+          set daemon 120
+          set logfile "{{lookup('env', 'HOME')}}/.monit.log"
+          set httpd port 2812 and use address localhost allow localhost allow @adm
+          check system localhost if loadavg (1min) > 10 then alert

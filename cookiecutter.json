@@ -1,0 +1,10 @@
+{
+  "hostname": "denzuko-workspace",
+  "wifissid": "",
+  "wifisecret": ""
+  "token": "",
+  "master
+  "swarmmaster": {
+      "default": false
+      "boolean"
+}

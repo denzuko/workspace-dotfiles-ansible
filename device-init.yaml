@@ -1,0 +1,20 @@
+hostname: "{{cookiecutter.hostname}}"
+wifi:
+    interfaces:
+        wlan0:
+            ssid: "{{cookiecutter.wifissid}}"
+            password: "{{cookiecutter.wifisecret}}"
+docker:
+    images:
+        - 'portainer'
+
+runcmd:
+{% if swarmhost %}
+    - "docker swarm join --token {{cookiecutter.token}} {{cookiecutter.swarmhost}}"
+{% else %}
+    - "docker swarm init"
+{% endif %}
+    - "pip install -y invoke ansible"
+    - "cp tasks.py /home/pirate/tasks.py"
+    - "mkdir /home/pirate/.local/etc/"
+    - "cp config.yml /home/pirate/.local/etc/config.yml"
