@@ -11,13 +11,13 @@
 #    - { role: systemli.drift }
 ---
 - hosts: localhost
-  become: true
   vars:
     homedir: "{{ lookup('env', 'HOME') }}"
     pubkey: "{{lookup('env', 'HOME')}}/.ssh/id_rsa.pub"
     gh_token: "{{lookup('env', 'GH_TOKEN')}}"
   tasks:
     - name: Install needed tools
+      become: true
       apt:
         name: "{{item}}"
         update_cache: yes
@@ -47,6 +47,7 @@
         - ctags
 
     - name: remove broken vim
+      become: true
       apt:
         name: vim-tiny
         state: absent
@@ -159,7 +160,7 @@
     - name: Generate an OpenSSH keypair
       openssh_keypair:
           path: "{{homedir}}/.ssh/id_rsa"
-          force: yes
+          force: no
 
     - name: Update github public keys
       github_key:
