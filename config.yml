@@ -125,7 +125,7 @@
       cron:
         name: 'rerun config playbook'
         special_time: hourly
-        job: "cd {{homedir}}; invoke run_playbook"
+        job: "cd {{homedir}}; invoke provision"
 
     - name: fetchmail periodically
       cron:
