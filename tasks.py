@@ -3,7 +3,7 @@
 from invoke import Collection, task
 
 @task(default=True)
-def run_playbook(context):
+def provision(context):
     context.run(f"ansible-playbook -K $HOME/.local/etc/config.yml")
 
 @task
