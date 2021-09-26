@@ -7,6 +7,6 @@ runcmd:
     - "docker swarm init"
 {% endif %}
     - "pip install -y -r requirements.txt"
-    - "cp tasks.py /home/pirate/tasks.py"
-    - "mkdir /home/pirate/.local/etc/"
-    - "cp config.yml /home/pirate/.local/etc/config.yml"
+    - "install tasks.py /home/{{cookiecutter.username}}/tasks.py"
+    - "install -d -D /home/{{cookiecutter.username}}/.local/etc/"
+    - "install config.yml /home/pirate/.local/etc/config.yml"
