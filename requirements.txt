@@ -1,0 +1,7 @@
+watchdog
+invoke
+honcho
+cookiecutter
+ansible[python-terraform,pywinrm,docker-py,awscli]
+pipenv
+pipx
