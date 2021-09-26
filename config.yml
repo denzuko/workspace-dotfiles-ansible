@@ -169,18 +169,14 @@
 
     - name: Add monitrc
       blockinfile:
-        path: "{{lookup('env', 'HOME') }}/.bashrc"
+        path: "{{homedir}}/.monitrc"
         state: present
         create: yes
         content: |
           set daemon 120
-          set logfile "{{lookup('env', 'HOME')}}/.monit.log"
+          set logfile "{{homedir}}/.monit.log"
           set httpd port 2812 and use address localhost allow localhost allow @adm
           check system localhost if loadavg (1min) > 10 then alert
-    - name: theme tmux
-      git:
-        repo: https://github.com/jimeh/tmux-themepack.git
-        dest: "{{homedir}}/.tmux-themepack"
 
     - name: theme tmux
       git:
