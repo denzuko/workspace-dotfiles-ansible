@@ -6,7 +6,7 @@ runcmd:
 {% else %}
     - "docker swarm init"
 {% endif %}
-    - "pip install -y invoke ansible"
+    - "pip install -y -r requirements.txt"
     - "cp tasks.py /home/pirate/tasks.py"
     - "mkdir /home/pirate/.local/etc/"
     - "cp config.yml /home/pirate/.local/etc/config.yml"
