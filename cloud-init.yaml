@@ -10,3 +10,8 @@ runcmd:
     - "install tasks.py /home/{{cookiecutter.username}}/tasks.py"
     - "install -d -D /home/{{cookiecutter.username}}/.local/etc/"
     - "install config.yml /home/pirate/.local/etc/config.yml"
+{% if datagird %}
+    - "git clone --depth=1 --bare https://github.com/Daplanet/datagrid /home/{{cookiecutter.username}}/datagrid"
+    - "cd /home/{{cookiecutter.username/datagrid && git worktree add --checkout v1.0.0"
+    - "make -C /home/{{cookiecutter.username/datagrid/v1.0.0 DOMAIN=example.com"
+{% endif %}
